@@ -1,0 +1,63 @@
+<?php
+require 'db_connect.php';
+session_start();
+
+$message = "";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $email = trim($_POST["email"]);
+    $password = $_POST["password"];
+
+    $stmt = $conn->prepare("SELECT id, username, password FROM users WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows === 1) {
+        $stmt->bind_result($id, $username, $hashed_password);
+        $stmt->fetch();
+
+        if (password_verify($password, $hashed_password)) {
+            $_SESSION["user_id"] = $id;
+            $_SESSION["username"] = $username;
+
+            header("Location: index.php");
+            exit;
+        } else {
+            $message = "Incorrect password.";
+        }
+    } else {
+        $message = "No account found with that email.";
+    }
+
+    $stmt->close();
+}
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Log In – Ireland Explorer</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+<div class="container">
+    <h1>Log In</h1>
+
+    <?php if ($message): ?>
+        <p><?php echo $message; ?></p>
+    <?php endif; ?>
+
+    <form method="POST">
+        <label>Email</label>
+        <input type="email" name="email" required>
+
+        <label>Password</label>
+        <input type="password" name="password" required>
+
+        <button type="submit" class="button">Log In</button>
+    </form>
+
+    <p>Don't have an account? <a href="register.php">Register</a></p>
+</div>
+</body>
+</html>
